@@ -1,0 +1,11 @@
+2025-02-27 22:38:27,599 - INFO - Logging started.
+2025-02-27 22:38:31,941 - ERROR - Error loading data for TSLA: name 'pd' is not defined
+2025-02-27 22:38:31,942 - ERROR - Error loading data for BND: name 'pd' is not defined
+2025-02-27 22:38:31,942 - ERROR - Error loading data for SPY: name 'pd' is not defined
+2025-02-27 22:38:43,469 - ERROR - Error loading data for TSLA: name 'pd' is not defined
+2025-02-27 22:38:43,470 - ERROR - Error loading data for BND: name 'pd' is not defined
+2025-02-27 22:38:43,470 - ERROR - Error loading data for SPY: name 'pd' is not defined
+2025-02-27 22:42:13,394 - INFO - Logging started.
+2025-02-27 22:42:14,100 - ERROR - Error loading data for TSLA: name 'pd' is not defined
+2025-02-27 22:42:14,102 - ERROR - Error loading data for BND: name 'pd' is not defined
+2025-02-27 22:42:14,102 - ERROR - Error loading data for SPY: name 'pd' is not defined
