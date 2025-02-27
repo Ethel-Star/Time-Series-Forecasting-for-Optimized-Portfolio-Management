@@ -2,8 +2,14 @@ import logging
 import os
 import pandas as pd
 
-# Initialize logging
-logging.basicConfig(level=logging.INFO)
+# Initialize logging to a file in the 'log' folder
+log_dir = 'log'
+if not os.path.exists(log_dir):
+    os.makedirs(log_dir)  # Create 'log' directory if it doesn't exist
+
+logging.basicConfig(filename=os.path.join(log_dir, 'data_cleaning.log'),
+                    level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Step 1: Load data from the specified directory
 def load_data(input_dir):
@@ -46,10 +52,10 @@ def handle_missing_values(data):
     for ticker, df in data.items():
         # Fill missing numerical columns with the mean
         for col in df.select_dtypes(include=['float64', 'int64']).columns:
-            df[col].fillna(df[col].mean(), inplace=True)
+            df[col] = df[col].fillna(df[col].mean())  # Changed to avoid FutureWarning
         # Fill missing categorical columns with the mode
         for col in df.select_dtypes(include=['object']).columns:
-            df[col].fillna(df[col].mode()[0], inplace=True)
+            df[col] = df[col].fillna(df[col].mode()[0])  # Changed to avoid FutureWarning
         logging.info(f"Handled missing values for {ticker}")
     return data
 
@@ -61,12 +67,26 @@ def normalize_data(data):
         df['Volume'] = pd.to_numeric(df['Volume'], errors='coerce')
         
         # Handle NaN values after conversion (e.g., fill with mean or drop them)
-        df['Close'].fillna(df['Close'].mean(), inplace=True)
-        df['Volume'].fillna(df['Volume'].mean(), inplace=True)
+        df['Close'] = df['Close'].fillna(df['Close'].mean())  # Changed to avoid FutureWarning
+        df['Volume'] = df['Volume'].fillna(df['Volume'].mean())  # Changed to avoid FutureWarning
+        
+        # Print statistics and data types before normalization
+        print(f"\nBefore Normalization - {ticker}:")
+        print("Basic Statistics for 'Close' and 'Volume':")
+        print(df[['Close', 'Volume']].describe())  # Show basic statistics
+        print("Data types:")
+        print(df[['Close', 'Volume']].dtypes)  # Show data types of 'Close' and 'Volume'
         
         # Normalize 'Close' and 'Volume' columns (example)
         df['Close_Normalized'] = (df['Close'] - df['Close'].min()) / (df['Close'].max() - df['Close'].min())
         df['Volume_Normalized'] = (df['Volume'] - df['Volume'].min()) / (df['Volume'].max() - df['Volume'].min())
+        
+        # Print statistics and data types after normalization
+        print("\nAfter Normalization:")
+        print("Basic Statistics for 'Close' and 'Volume':")
+        print(df[['Close_Normalized', 'Volume_Normalized']].describe())  # Show statistics after normalization
+        print("Data types:")
+        print(df[['Close_Normalized', 'Volume_Normalized']].dtypes)  # Show data types of normalized columns
         
         logging.info(f"Normalized 'Close' and 'Volume' columns for {ticker}")
     return data
