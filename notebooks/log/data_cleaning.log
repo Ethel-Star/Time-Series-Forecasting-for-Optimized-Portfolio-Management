@@ -1,0 +1,138 @@
+2025-02-27 23:55:15,984 - INFO - Loaded data for BND_historical from E:\DS+ML\AIM3\Week.11\Time-Series-Forecasting-for-Optimized-Portfolio-Management\financial_data\BND_historical.csv
+2025-02-27 23:55:16,086 - INFO - Loaded data for SPY_historical from E:\DS+ML\AIM3\Week.11\Time-Series-Forecasting-for-Optimized-Portfolio-Management\financial_data\SPY_historical.csv
+2025-02-27 23:55:16,147 - INFO - Loaded data for TSLA_historical from E:\DS+ML\AIM3\Week.11\Time-Series-Forecasting-for-Optimized-Portfolio-Management\financial_data\TSLA_historical.csv
+2025-02-27 23:55:16,147 - INFO - Statistics for BND_historical:
+2025-02-27 23:55:17,101 - INFO -          Adj Close
+count  2535.000000
+mean     69.289451
+std       4.792146
+min      61.860882
+25%      65.565269
+50%      68.329124
+75%      72.879921
+max      78.823250
+2025-02-27 23:55:17,226 - INFO - Statistics for SPY_historical:
+2025-02-27 23:55:17,231 - INFO -          Adj Close
+count  2535.000000
+mean    316.067401
+std     117.926910
+min     156.800827
+25%     214.842003
+50%     277.117889
+75%     405.869202
+max     609.750000
+2025-02-27 23:55:17,234 - INFO - Statistics for TSLA_historical:
+2025-02-27 23:55:17,239 - INFO -          Adj Close
+count  2535.000000
+mean    117.848209
+std     116.508288
+min       9.578000
+25%      17.228000
+50%      30.298000
+75%     221.525002
+max     479.859985
+2025-02-27 23:55:17,241 - INFO - Data types for BND_historical:
+2025-02-27 23:55:17,242 - INFO - Date          object
+Open          object
+High          object
+Low           object
+Close         object
+Adj Close    float64
+Volume        object
+dtype: object
+2025-02-27 23:55:18,160 - INFO - Data types for SPY_historical:
+2025-02-27 23:55:18,161 - INFO - Date          object
+Open          object
+High          object
+Low           object
+Close         object
+Adj Close    float64
+Volume        object
+dtype: object
+2025-02-27 23:55:18,172 - INFO - Data types for TSLA_historical:
+2025-02-27 23:55:18,175 - INFO - Date          object
+Open          object
+High          object
+Low           object
+Close         object
+Adj Close    float64
+Volume        object
+dtype: object
+2025-02-27 23:55:18,647 - INFO - Handled missing values for BND_historical
+2025-02-27 23:55:18,659 - INFO - Handled missing values for SPY_historical
+2025-02-27 23:55:18,668 - INFO - Handled missing values for TSLA_historical
+2025-02-27 23:55:18,702 - INFO - Normalized 'Close' and 'Volume' columns for BND_historical
+2025-02-27 23:55:18,709 - INFO - Normalized 'Close' and 'Volume' columns for SPY_historical
+2025-02-27 23:55:18,715 - INFO - Normalized 'Close' and 'Volume' columns for TSLA_historical
+2025-02-27 23:55:19,153 - INFO - Saved cleaned data for BND_historical to E:\DS+ML\AIM3\Week.11\Time-Series-Forecasting-for-Optimized-Portfolio-Management\cleaned_data\BND_historical_cleaned.csv
+2025-02-27 23:55:19,186 - INFO - Saved cleaned data for SPY_historical to E:\DS+ML\AIM3\Week.11\Time-Series-Forecasting-for-Optimized-Portfolio-Management\cleaned_data\SPY_historical_cleaned.csv
+2025-02-27 23:55:19,240 - INFO - Saved cleaned data for TSLA_historical to E:\DS+ML\AIM3\Week.11\Time-Series-Forecasting-for-Optimized-Portfolio-Management\cleaned_data\TSLA_historical_cleaned.csv
+2025-02-28 00:01:08,518 - INFO - Loaded data for BND_historical from E:\DS+ML\AIM3\Week.11\Time-Series-Forecasting-for-Optimized-Portfolio-Management\financial_data\BND_historical.csv
+2025-02-28 00:01:08,577 - INFO - Loaded data for SPY_historical from E:\DS+ML\AIM3\Week.11\Time-Series-Forecasting-for-Optimized-Portfolio-Management\financial_data\SPY_historical.csv
+2025-02-28 00:01:08,628 - INFO - Loaded data for TSLA_historical from E:\DS+ML\AIM3\Week.11\Time-Series-Forecasting-for-Optimized-Portfolio-Management\financial_data\TSLA_historical.csv
+2025-02-28 00:01:08,628 - INFO - Statistics for BND_historical:
+2025-02-28 00:01:08,631 - INFO -          Adj Close
+count  2535.000000
+mean     69.289451
+std       4.792146
+min      61.860882
+25%      65.565269
+50%      68.329124
+75%      72.879921
+max      78.823250
+2025-02-28 00:01:08,659 - INFO - Statistics for SPY_historical:
+2025-02-28 00:01:08,662 - INFO -          Adj Close
+count  2535.000000
+mean    316.067401
+std     117.926910
+min     156.800827
+25%     214.842003
+50%     277.117889
+75%     405.869202
+max     609.750000
+2025-02-28 00:01:08,664 - INFO - Statistics for TSLA_historical:
+2025-02-28 00:01:08,666 - INFO -          Adj Close
+count  2535.000000
+mean    117.848209
+std     116.508288
+min       9.578000
+25%      17.228000
+50%      30.298000
+75%     221.525002
+max     479.859985
+2025-02-28 00:01:08,667 - INFO - Data types for BND_historical:
+2025-02-28 00:01:08,668 - INFO - Date          object
+Open          object
+High          object
+Low           object
+Close         object
+Adj Close    float64
+Volume        object
+dtype: object
+2025-02-28 00:01:08,673 - INFO - Data types for SPY_historical:
+2025-02-28 00:01:08,673 - INFO - Date          object
+Open          object
+High          object
+Low           object
+Close         object
+Adj Close    float64
+Volume        object
+dtype: object
+2025-02-28 00:01:08,677 - INFO - Data types for TSLA_historical:
+2025-02-28 00:01:08,678 - INFO - Date          object
+Open          object
+High          object
+Low           object
+Close         object
+Adj Close    float64
+Volume        object
+dtype: object
+2025-02-28 00:01:08,690 - INFO - Handled missing values for BND_historical
+2025-02-28 00:01:08,703 - INFO - Handled missing values for SPY_historical
+2025-02-28 00:01:08,713 - INFO - Handled missing values for TSLA_historical
+2025-02-28 00:01:08,736 - INFO - Normalized 'Close' and 'Volume' columns for BND_historical
+2025-02-28 00:01:08,759 - INFO - Normalized 'Close' and 'Volume' columns for SPY_historical
+2025-02-28 00:01:08,780 - INFO - Normalized 'Close' and 'Volume' columns for TSLA_historical
+2025-02-28 00:01:08,860 - INFO - Saved cleaned data for BND_historical to E:\DS+ML\AIM3\Week.11\Time-Series-Forecasting-for-Optimized-Portfolio-Management\cleaned_data\BND_historical_cleaned.csv
+2025-02-28 00:01:08,894 - INFO - Saved cleaned data for SPY_historical to E:\DS+ML\AIM3\Week.11\Time-Series-Forecasting-for-Optimized-Portfolio-Management\cleaned_data\SPY_historical_cleaned.csv
+2025-02-28 00:01:08,929 - INFO - Saved cleaned data for TSLA_historical to E:\DS+ML\AIM3\Week.11\Time-Series-Forecasting-for-Optimized-Portfolio-Management\cleaned_data\TSLA_historical_cleaned.csv
