@@ -1,136 +1,139 @@
 import numpy as np
 import pandas as pd
-from statsmodels.tsa.statespace.sarimax import SARIMAX
-from sklearn.metrics import mean_absolute_error, mean_squared_error
 import matplotlib.pyplot as plt
+from statsmodels.tsa.statespace.sarimax import SARIMAX
 from statsmodels.tsa.stattools import adfuller
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+from tensorflow.keras.callbacks import EarlyStopping
+import logging
+import os
+from datetime import datetime
 
-# Function to load and prepare data
+# Set up logging
+log_folder = "log.model"
+if not os.path.exists(log_folder):
+    os.makedirs(log_folder)
+
+log_file = os.path.join(log_folder, f"forecast_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler(log_file),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
 def load_data(file_path):
-    try:
-        df = pd.read_csv(file_path, parse_dates=['Date'])
-        df = df.sort_values('Date').set_index('Date')  # Ensure monotonic index
-        inferred_freq = pd.infer_freq(df.index)
-        if inferred_freq:
-            df.index.freq = inferred_freq
-            print(f"Inferred Frequency: {inferred_freq}")
-        else:
-            print("Warning: Could not infer frequency. Proceeding without it.")
-        print("Data Loaded Successfully")
-        return df['Close']
-    except Exception as e:
-        print(f"Error loading data: {e}")
-        return None
+    df = pd.read_csv(file_path, parse_dates=['Date'])
+    df = df.sort_values('Date').set_index('Date')
+    return df['Close']
 
-# Function to split data
 def split_data(series, train_ratio=0.8):
     train_size = int(len(series) * train_ratio)
-    train, test = series.iloc[:train_size], series.iloc[train_size:]
-    print(f"Data Split: Train ({len(train)}), Test ({len(test)})")
-    return train, test
+    return series.iloc[:train_size], series.iloc[train_size:]
 
-# Function to evaluate the model's performance
-def evaluate_model(model, train, test):
-    try:
-        model_fitted = model.fit(disp=False)  # Suppress convergence messages
-        forecast = model_fitted.forecast(steps=len(test))
-        forecast.index = test.index  # Align forecast with test index
-        
-        mae = mean_absolute_error(test, forecast)
-        rmse = np.sqrt(mean_squared_error(test, forecast))
-        mape = np.mean(np.abs((test - forecast) / test.replace(0, np.finfo(float).eps))) * 100
-        
-        return mae, rmse, mape, forecast
-    except Exception as e:
-        raise Exception(f"Evaluation failed: {e}")
-
-# SARIMAX hyperparameter tuning with expanded search space
-def sarimax_tuning(train, test):
-    best_mape = float('inf')
-    best_sarimax_model = None
-    best_params = None
-
-    # Expanded hyperparameter search space
-    p_values = [0, 1, 2, 3]
-    d_values = [0, 1, 2]  # Allow higher differencing
-    q_values = [0, 1, 2, 3]
-    P_values = [0, 1, 2]
-    D_values = [0, 1]
-    Q_values = [0, 1, 2]
-    S_values = [5, 7, 12]  # Test multiple seasonal periods
-
-    for p in p_values:
-        for d in d_values:
-            for q in q_values:
-                for P in P_values:
-                    for D in D_values:
-                        for Q in Q_values:
-                            for S in S_values:
-                                try:
-                                    sarimax_model = SARIMAX(train, order=(p, d, q), seasonal_order=(P, D, Q, S))
-                                    mae, rmse, mape, _ = evaluate_model(sarimax_model, train, test)
-                                    
-                                    if mape < best_mape:
-                                        best_mape = mape
-                                        best_sarimax_model = sarimax_model
-                                        best_params = (p, d, q, P, D, Q, S)
-                                        print(f"New Best SARIMAX: {best_params}, MAPE: {mape:.2f}%")
-                                except Exception as e:
-                                    print(f"SARIMAX ({p}, {d}, {q}, {P}, {D}, {Q}, {S}) failed: {str(e)}")
+def evaluate_model(actual, predicted):
+    mae = mean_absolute_error(actual, predicted)
+    rmse = np.sqrt(mean_squared_error(actual, predicted))
     
-    if best_sarimax_model is None:
-        print("No valid SARIMAX model found. Using default SARIMAX(1, 1, 1, 1, 1, 1, 12).")
-        best_sarimax_model = SARIMAX(train, order=(1, 1, 1), seasonal_order=(1, 1, 1, 12))
-        best_params = (1, 1, 1, 1, 1, 1, 12)
-        try:
-            mae, rmse, mape, _ = evaluate_model(best_sarimax_model, train, test)
-            best_mape = mape
-        except Exception as e:
-            print(f"Default SARIMAX(1, 1, 1, 1, 1, 1, 12) failed: {str(e)}")
-            return None, None, None
+    # Handle division by zero or near-zero values for MAPE
+    actual = np.where(actual == 0, np.finfo(float).eps, actual)  # Replace zeros with a small value
+    mape = np.mean(np.abs((actual - predicted) / actual)) * 100
     
-    print(f"\nBest SARIMAX Parameters: {best_params}")
-    print(f"Best SARIMAX MAPE: {best_mape:.2f}%")
-    return best_sarimax_model, best_params, best_mape
+    return mae, rmse, mape
 
-# Plot SARIMAX forecast
-def plot_forecast(train, test, best_sarimax_model, sarimax_mape):
-    sarimax_fitted = best_sarimax_model.fit(disp=False)
-    sarimax_forecast = sarimax_fitted.forecast(steps=len(test))
-    sarimax_forecast.index = test.index
+def check_stationarity(series):
+    result = adfuller(series)
+    logger.info(f'ADF Statistic: {result[0]}')
+    logger.info(f'p-value: {result[1]}')
+    logger.info(f'Critical Values: {result[4]}')
+    if result[1] > 0.05:
+        logger.info("Series is not stationary")
+    else:
+        logger.info("Series is stationary")
 
-    plt.figure(figsize=(15, 6))
-    plt.plot(train.index, train, label='Training Data', color='gray', alpha=0.5)
-    plt.plot(test.index, test, label='Test Data', color='black')
-    plt.plot(sarimax_forecast.index, sarimax_forecast, label='SARIMAX Forecast', color='blue')
-    plt.title(f'SARIMAX Forecast (MAPE: {sarimax_mape:.2f}%)')
-    plt.legend()
-    plt.xlabel('Date')
-    plt.ylabel('Close Price')
-    plt.tight_layout()
-    plt.show()
+def sarimax_model(train, test):
+    model = SARIMAX(train, order=(1, 1, 1), seasonal_order=(1, 1, 1, 12))
+    model_fitted = model.fit(disp=False)
+    forecast = model_fitted.get_forecast(steps=len(test))
+    forecast_mean = forecast.predicted_mean
+    forecast_ci = forecast.conf_int()
+    forecast_mean.index = test.index
+    forecast_ci.index = test.index
+    return forecast_mean, forecast_ci
 
-# Main execution function
+def create_lstm_sequences(data, seq_length=10):
+    sequences, targets = [], []
+    for i in range(len(data) - seq_length):
+        sequences.append(data[i:i+seq_length])
+        targets.append(data[i+seq_length])
+    return np.array(sequences), np.array(targets)
+
+def lstm_model(train, test, seq_length=10, epochs=50, batch_size=16):
+    scaler = MinMaxScaler()
+    train_scaled = scaler.fit_transform(train.values.reshape(-1, 1))
+    test_scaled = scaler.transform(test.values.reshape(-1, 1))
+    
+    X_train, y_train = create_lstm_sequences(train_scaled, seq_length)
+    X_test, y_test = create_lstm_sequences(test_scaled, seq_length)
+    
+    X_train, X_test = X_train.reshape(-1, seq_length, 1), X_test.reshape(-1, seq_length, 1)
+    
+    model = Sequential([
+        LSTM(50, return_sequences=True, input_shape=(seq_length, 1)),
+        LSTM(50),
+        Dense(1)
+    ])
+    model.compile(optimizer='adam', loss='mse')
+    
+    early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+    model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_split=0.2, callbacks=[early_stopping], verbose=0)
+    
+    predictions = model.predict(X_test).flatten()
+    predictions = scaler.inverse_transform(predictions.reshape(-1, 1)).flatten()
+    return predictions, y_test
+
 def main():
-    file_path = r"E:\DS+ML\AIM3\Week.11\Time-Series-Forecasting-for-Optimized-Portfolio-Management\cleaned_data\TSLA_historical_cleaned.csv"
-    
-    # Load and split data
-    series = load_data(file_path)
-    if series is None:
-        return
-    
-    train, test = split_data(series)
-    
-    # Check stationarity (optional, for informational purposes)
-    p_value = adfuller(train.dropna())[1]
-    print(f"Stationarity Check - p-value: {p_value:.4f} {'(stationary)' if p_value < 0.05 else '(non-stationary)'}")
-    
-    # Tune SARIMAX
-    best_sarimax_model, sarimax_params, sarimax_mape = sarimax_tuning(train, test)
-    
-    # Plot SARIMAX forecast
-    if best_sarimax_model is not None:
-        plot_forecast(train, test, best_sarimax_model, sarimax_mape)
+    try:
+        file_path = r"E:\DS+ML\AIM3\Week.11\Time-Series-Forecasting-for-Optimized-Portfolio-Management\cleaned_data\TSLA_historical_cleaned.csv"
+        series = load_data(file_path)
+        train, test = split_data(series)
+        
+        # Check stationarity
+        logger.info("Checking stationarity of the training data...")
+        check_stationarity(train)
+        
+        # SARIMAX Model
+        logger.info("Fitting SARIMAX model...")
+        sarimax_forecast, sarimax_ci = sarimax_model(train, test)
+        sarimax_mae, sarimax_rmse, sarimax_mape = evaluate_model(test, sarimax_forecast)
+        logger.info(f"SARIMAX MAE: {sarimax_mae:.2f}, RMSE: {sarimax_rmse:.2f}, MAPE: {sarimax_mape:.2f}%")
+        
+        # LSTM Model
+        logger.info("Fitting LSTM model...")
+        lstm_predictions, y_test = lstm_model(train, test)
+        lstm_mae, lstm_rmse, lstm_mape = evaluate_model(y_test, lstm_predictions)
+        logger.info(f"LSTM MAE: {lstm_mae:.2f}, RMSE: {lstm_rmse:.2f}, MAPE: {lstm_mape:.2f}%")
+        
+        # Plot results
+        plt.figure(figsize=(12, 6))
+        plt.plot(train.index, train, label='Train', color='green')
+        plt.plot(test.index, test, label='Actual', color='black')
+        plt.plot(test.index, sarimax_forecast, label='SARIMAX Forecast', color='blue')
+        plt.fill_between(test.index, sarimax_ci.iloc[:, 0], sarimax_ci.iloc[:, 1], color='blue', alpha=0.2)
+        plt.plot(test.index[:len(y_test)], lstm_predictions, label='LSTM Forecast', color='red')
+        plt.legend()
+        plt.title('SARIMAX vs LSTM Forecast')
+        plt.show()
+        
+    except Exception as e:
+        logger.error(f"An error occurred: {e}")
 
 if __name__ == "__main__":
     main()
