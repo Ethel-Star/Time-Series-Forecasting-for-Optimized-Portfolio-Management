@@ -37,16 +37,14 @@ logger = logging.getLogger(__name__)
 
 # Check and clean data
 def check_and_clean_data(series):
-    # Check for missing values
     if series.isnull().any():
         logger.warning("Data contains missing values. Filling missing values with forward fill.")
         series = series.ffill()  # Forward fill missing values
     
-    # Check for infinite values
     if np.isinf(series).any():
         logger.warning("Data contains infinite values. Replacing infinite values with NaN.")
         series.replace([np.inf, -np.inf], np.nan, inplace=True)
-        series = series.ffill()  # Forward fill after replacing infinite values
+        series = series.ffill()  
     
     return series
 
@@ -68,8 +66,7 @@ def evaluate_model(actual, predicted):
     mae = mean_absolute_error(actual, predicted)
     rmse = np.sqrt(mean_squared_error(actual, predicted))
     
-    # Handle division by zero or near-zero values for MAPE
-    actual = np.where(actual == 0, np.finfo(float).eps, actual)  # Replace zeros with a small value
+    actual = np.where(actual == 0, np.finfo(float).eps, actual)  
     mape = np.mean(np.abs((actual - predicted) / actual)) * 100
     
     return mae, rmse, mape
@@ -87,15 +84,10 @@ def check_stationarity(series):
 
 # ARIMA model
 def arima_model(train, test):
-    # Ensure no missing values in the training data
-    if train.isnull().any():
-        logger.warning("Training data contains missing values. Filling missing values with forward fill.")
-        train = train.ffill()
-    
-    model = ARIMA(train, order=(1, 1, 1))  # ARIMA(p, d, q)
+    train = train.ffill()  # Ensure no missing values
+    model = ARIMA(train, order=(1, 1, 1))
     model_fitted = model.fit()
     
-    # Save ARIMA model
     joblib.dump(model_fitted, 'arima_model.pkl')
     logger.info("ARIMA model saved as 'arima_model.pkl'.")
     
@@ -103,24 +95,19 @@ def arima_model(train, test):
     forecast = pd.Series(forecast, index=test.index)
     return forecast
 
-# SARIMAX model with auto ARIMA for parameter tuning
+# SARIMAX model
 def sarimax_model(train, test):
-    # Ensure no missing values in the training data
-    if train.isnull().any():
-        logger.warning("Training data contains missing values. Filling missing values with forward fill.")
-        train = train.ffill()
-    
+    train = train.ffill()
     model = auto_arima(train, seasonal=True, m=12, stepwise=True, trace=True)
     logger.info(model.summary())
     model_fitted = model.fit(train)
     
-    # Save SARIMAX model
     joblib.dump(model_fitted, 'sarimax_model.pkl')
     logger.info("SARIMAX model saved as 'sarimax_model.pkl'.")
     
     forecast = model_fitted.predict(n_periods=len(test))
     forecast = pd.Series(forecast, index=test.index)
-    return forecast, None  # No confidence intervals for simplicity
+    return forecast
 
 # Create sequences for LSTM
 def create_lstm_sequences(data, seq_length=10):
@@ -130,7 +117,7 @@ def create_lstm_sequences(data, seq_length=10):
         targets.append(data[i+seq_length])
     return np.array(sequences), np.array(targets)
 
-# LSTM model with dropout and learning rate scheduler
+# LSTM model with MinMaxScaler
 def lstm_model(train, test, seq_length=10, epochs=100, batch_size=32):
     scaler = MinMaxScaler()
     train_scaled = scaler.fit_transform(train.values.reshape(-1, 1))
@@ -142,28 +129,29 @@ def lstm_model(train, test, seq_length=10, epochs=100, batch_size=32):
     X_train, X_test = X_train.reshape(-1, seq_length, 1), X_test.reshape(-1, seq_length, 1)
     
     model = Sequential([
-        Input(shape=(seq_length, 1)),  # Explicit Input layer
+        Input(shape=(seq_length, 1)),
         LSTM(100, return_sequences=True),
-        Dropout(0.2),  # Add dropout to prevent overfitting
+        Dropout(0.2),
         LSTM(50),
-        Dropout(0.2),  # Add dropout to prevent overfitting
+        Dropout(0.2),
         Dense(1)
     ])
     
-    # Use a learning rate scheduler
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=0.0001)
     early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
     
     model.compile(optimizer='adam', loss='mse')
-    model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_split=0.2, callbacks=[early_stopping, reduce_lr], verbose=1)
+    model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_split=0.2, 
+              callbacks=[early_stopping, reduce_lr], verbose=1)
     
-    # Save LSTM model
+    joblib.dump(scaler, 'scaler.pkl')  # Save scaler
     joblib.dump(model, 'lstm_model.pkl')
     logger.info("LSTM model saved as 'lstm_model.pkl'.")
-    
+
     predictions = model.predict(X_test).flatten()
     predictions = scaler.inverse_transform(predictions.reshape(-1, 1)).flatten()
-    return predictions, y_test
+    
+    return predictions, scaler.inverse_transform(y_test.reshape(-1, 1)).flatten()
 
 # Main function
 def main():
@@ -172,7 +160,6 @@ def main():
         series = load_data(file_path)
         train, test = split_data(series)
         
-        # Check stationarity
         logger.info("Checking stationarity of the training data...")
         check_stationarity(train)
         
@@ -184,7 +171,7 @@ def main():
         
         # SARIMAX Model
         logger.info("Fitting SARIMAX model...")
-        sarimax_forecast, _ = sarimax_model(train, test)
+        sarimax_forecast = sarimax_model(train, test)
         sarimax_mae, sarimax_rmse, sarimax_mape = evaluate_model(test, sarimax_forecast)
         logger.info(f"SARIMAX MAE: {sarimax_mae:.2f}, RMSE: {sarimax_rmse:.2f}, MAPE: {sarimax_mape:.2f}%")
         
@@ -194,38 +181,8 @@ def main():
         lstm_mae, lstm_rmse, lstm_mape = evaluate_model(y_test, lstm_predictions)
         logger.info(f"LSTM MAE: {lstm_mae:.2f}, RMSE: {lstm_rmse:.2f}, MAPE: {lstm_mape:.2f}%")
         
-        # Plot results
-        plt.figure(figsize=(14, 10))
-        
-        # Plot ARIMA results
-        plt.subplot(3, 1, 1)
-        plt.plot(train.index, train, label='Train', color='green')
-        plt.plot(test.index, test, label='Actual', color='black')
-        plt.plot(test.index, arima_forecast, label='ARIMA Forecast', color='orange')
-        plt.title('ARIMA Forecast vs Actual')
-        plt.legend()
-        
-        # Plot SARIMAX results
-        plt.subplot(3, 1, 2)
-        plt.plot(train.index, train, label='Train', color='green')
-        plt.plot(test.index, test, label='Actual', color='black')
-        plt.plot(test.index, sarimax_forecast, label='SARIMAX Forecast', color='blue')
-        plt.title('SARIMAX Forecast vs Actual')
-        plt.legend()
-        
-        # Plot LSTM results
-        plt.subplot(3, 1, 3)
-        plt.plot(train.index, train, label='Train', color='green')
-        plt.plot(test.index, test, label='Actual', color='black')
-        plt.plot(test.index[:len(y_test)], lstm_predictions, label='LSTM Forecast', color='red')
-        plt.title('LSTM Forecast vs Actual')
-        plt.legend()
-        
-        plt.tight_layout()
-        plt.show()
-        
     except Exception as e:
-        logger.error(f"An error occurred: {e}")
+        logger.error(f"Error: {e}")
 
 if __name__ == "__main__":
     main()
